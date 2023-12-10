@@ -13,24 +13,26 @@ import (
 	"testing"
 )
 
-type testdb struct {
-	db.UserStore
+type testDB struct {
+	store *db.Store
 }
 
-func (tdb *testdb) tearDown(t *testing.T) {
-	if err := tdb.UserStore.Drop(context.TODO()); err != nil {
+func (tdb *testDB) tearDown(t *testing.T) {
+	if err := tdb.store.User.Drop(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func setup(t *testing.T) *testdb {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
+func setup(t *testing.T) *testDB {
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.URI))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return &testdb{
-		UserStore: db.NewMongoUserStore(client),
+	return &testDB{
+		store: &db.Store{
+			User: db.NewMongoUserStore(client),
+		},
 	}
 }
 
@@ -39,7 +41,7 @@ func TestPostUser(t *testing.T) {
 	defer tdb.tearDown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb.UserStore)
+	userHandler := NewUserHandler(tdb.store)
 	app.Post("/", userHandler.HandlePostUser)
 
 	params := types.CreateUserParams{
@@ -59,7 +61,10 @@ func TestPostUser(t *testing.T) {
 	}
 
 	var user types.User
-	json.NewDecoder(resp.Body).Decode(&user)
+	err = json.NewDecoder(resp.Body).Decode(&user)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if user.ID.IsZero() {
 		t.Error("Expected user.ID to be not empty")
 	}
@@ -82,10 +87,10 @@ func TestGetUser(t *testing.T) {
 	defer tdb.tearDown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb.UserStore)
+	userHandler := NewUserHandler(tdb.store)
 	app.Get("/:id", userHandler.HandleGetUser)
 
-	user, err := tdb.UserStore.InsertUser(context.TODO(), &types.User{
+	user, err := tdb.store.User.InsertUser(context.TODO(), &types.User{
 		FirstName:         "John",
 		LastName:          "Doe",
 		Email:             "john@doe.com",
@@ -103,7 +108,10 @@ func TestGetUser(t *testing.T) {
 	}
 
 	var returnedUser types.User
-	json.NewDecoder(resp.Body).Decode(&returnedUser)
+	err = json.NewDecoder(resp.Body).Decode(&returnedUser)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if returnedUser.ID != user.ID {
 		t.Errorf("Expected %s, got %s", user.ID, returnedUser.ID)
 	}
@@ -126,10 +134,10 @@ func TestGetUsers(t *testing.T) {
 	defer tdb.tearDown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb.UserStore)
+	userHandler := NewUserHandler(tdb.store)
 	app.Get("/", userHandler.HandleGetUsers)
 
-	user1, err := tdb.UserStore.InsertUser(context.TODO(), &types.User{
+	user1, err := tdb.store.User.InsertUser(context.TODO(), &types.User{
 		FirstName:         "John",
 		LastName:          "Doe",
 		Email:             "john@doe.com",
@@ -138,7 +146,7 @@ func TestGetUsers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	user2, err := tdb.UserStore.InsertUser(context.TODO(), &types.User{
+	user2, err := tdb.store.User.InsertUser(context.TODO(), &types.User{
 		FirstName:         "Jane",
 		LastName:          "Doe",
 		Email:             "jane@doe.com",
@@ -156,7 +164,10 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	var returnedUsers []types.User
-	json.NewDecoder(resp.Body).Decode(&returnedUsers)
+	err = json.NewDecoder(resp.Body).Decode(&returnedUsers)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if returnedUsers[0].ID != user1.ID {
 		t.Errorf("Expected %s, got %s", user1.ID, returnedUsers[0].ID)
 	}
@@ -194,10 +205,10 @@ func TestUpdateUser(t *testing.T) {
 	defer tdb.tearDown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb.UserStore)
+	userHandler := NewUserHandler(tdb.store)
 	app.Put("/:id", userHandler.HandlePutUser)
 
-	user, err := tdb.UserStore.InsertUser(context.TODO(), &types.User{
+	user, err := tdb.store.User.InsertUser(context.TODO(), &types.User{
 		FirstName:         "John",
 		LastName:          "Doe",
 		Email:             "john@doe.com",
@@ -231,10 +242,10 @@ func TestDeleteUser(t *testing.T) {
 	defer tdb.tearDown(t)
 
 	app := fiber.New()
-	userHandler := NewUserHandler(tdb.UserStore)
+	userHandler := NewUserHandler(tdb.store)
 	app.Delete("/:id", userHandler.HandleDeleteUser)
 
-	user, err := tdb.UserStore.InsertUser(context.TODO(), &types.User{
+	user, err := tdb.store.User.InsertUser(context.TODO(), &types.User{
 		FirstName:         "John",
 		LastName:          "Doe",
 		Email:             "john@doe.com",
@@ -255,7 +266,7 @@ func TestDeleteUser(t *testing.T) {
 		t.Errorf("Expected %d, got %d", fiber.StatusOK, resp.StatusCode)
 	}
 
-	_, err = tdb.UserStore.GetUserByID(context.TODO(), user.ID.Hex())
+	_, err = tdb.store.User.GetUserByID(context.TODO(), user.ID.Hex())
 	if err == nil {
 		t.Error("Expected error, got nil")
 	}

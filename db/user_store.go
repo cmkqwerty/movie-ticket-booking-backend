@@ -16,12 +16,13 @@ type Dropper interface {
 }
 
 type UserStore interface {
-	Dropper
+	InsertUser(context.Context, *types.User) (*types.User, error)
 	GetUserByID(context.Context, string) (*types.User, error)
 	GetUsers(context.Context) ([]*types.User, error)
-	InsertUser(context.Context, *types.User) (*types.User, error)
-	DeleteUser(context.Context, string) error
 	UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error
+	DeleteUser(context.Context, string) error
+
+	Dropper
 }
 
 type MongoUserStore struct {
@@ -32,7 +33,7 @@ type MongoUserStore struct {
 func NewMongoUserStore(c *mongo.Client) *MongoUserStore {
 	return &MongoUserStore{
 		client: c,
-		coll:   c.Database(DBNAME).Collection(userColl),
+		coll:   c.Database(NAME).Collection(userColl),
 	}
 }
 

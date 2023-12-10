@@ -40,7 +40,7 @@ func seedCinema(name, location string, rating int) {
 		},
 	}
 
-	insertedCinema, err := cinemaStore.Insert(ctx, &cinema)
+	insertedCinema, err := cinemaStore.InsertCinema(ctx, &cinema)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,11 +67,11 @@ func main() {
 
 func init() {
 	var err error
-	client, err = mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
+	client, err = mongo.Connect(context.TODO(), options.Client().ApplyURI(db.URI))
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := client.Database(db.DBNAME).Drop(ctx); err != nil {
+	if err := client.Database(db.NAME).Drop(ctx); err != nil {
 		log.Fatal(err)
 	}
 

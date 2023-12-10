@@ -20,7 +20,7 @@ func main() {
 	listenAddr := flag.String("listenAddr", ":3000", "The listener address of the HTTP API server.")
 	flag.Parse()
 
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(db.DBURI))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(db.URI))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,19 +36,21 @@ func main() {
 			Movie:  movieStore,
 			Hall:   hallStore,
 		}
-		userHandler   = api.NewUserHandler(userStore)
+		userHandler   = api.NewUserHandler(store)
 		cinemaHandler = api.NewCinemaHandler(store)
 	)
 
 	app := fiber.New(config)
 	apiv1 := app.Group("/api/v1")
 
+	// User routes
 	apiv1.Post("/user", userHandler.HandlePostUser)
 	apiv1.Get("/user/:id", userHandler.HandleGetUser)
 	apiv1.Get("/user", userHandler.HandleGetUsers)
 	apiv1.Delete("/user/:id", userHandler.HandleDeleteUser)
 	apiv1.Put("/user/:id", userHandler.HandlePutUser)
 
+	// Cinema routes
 	apiv1.Get("/cinema", cinemaHandler.HandleGetCinemas)
 	apiv1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
 

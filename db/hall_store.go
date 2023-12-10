@@ -25,7 +25,7 @@ type MongoHallStore struct {
 func NewMongoHallStore(c *mongo.Client, cinemaStore CinemaStore) *MongoHallStore {
 	return &MongoHallStore{
 		client:      c,
-		coll:        c.Database(DBNAME).Collection(hallColl),
+		coll:        c.Database(NAME).Collection(hallColl),
 		CinemaStore: cinemaStore,
 	}
 }
@@ -41,7 +41,7 @@ func (s *MongoHallStore) InsertHall(ctx context.Context, hall *types.Hall) (*typ
 	// update cinema with new hall
 	filter := bson.M{"_id": hall.Cinema}
 	update := bson.M{"$push": bson.M{"halls": hall.ID}}
-	if err := s.CinemaStore.Update(ctx, filter, update); err != nil {
+	if err := s.CinemaStore.UpdateCinema(ctx, filter, update); err != nil {
 		return nil, err
 	}
 

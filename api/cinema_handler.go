@@ -17,22 +17,6 @@ func NewCinemaHandler(store *db.Store) *CinemaHandler {
 	}
 }
 
-func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {
-	id := c.Params("id")
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
-
-	filter := bson.M{"cinema": objID}
-	halls, err := h.store.Hall.GetHalls(c.Context(), filter)
-	if err != nil {
-		return err
-	}
-
-	return c.JSON(halls)
-}
-
 func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -55,4 +39,20 @@ func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(cinemas)
+}
+
+func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {
+	id := c.Params("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	filter := bson.M{"cinema": objID}
+	halls, err := h.store.Hall.GetHalls(c.Context(), filter)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(halls)
 }

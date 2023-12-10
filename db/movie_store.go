@@ -21,7 +21,7 @@ type MongoMovieStore struct {
 func NewMongoMovieStore(c *mongo.Client) *MongoMovieStore {
 	return &MongoMovieStore{
 		client: c,
-		coll:   c.Database(DBNAME).Collection(movieColl),
+		coll:   c.Database(NAME).Collection(movieColl),
 	}
 }
 
