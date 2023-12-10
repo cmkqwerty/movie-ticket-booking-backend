@@ -9,14 +9,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"net/http/httptest"
 	"testing"
-)
-
-const (
-	testdburi  = "mongodb://localhost:27017"
-	testdbname = "movie-ticket-booking-test"
 )
 
 type testdb struct {
@@ -30,13 +24,13 @@ func (tdb *testdb) tearDown(t *testing.T) {
 }
 
 func setup(t *testing.T) *testdb {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(testdburi))
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.DBURI))
 	if err != nil {
-		log.Fatal(err)
+		t.Fatal(err)
 	}
 
 	return &testdb{
-		UserStore: db.NewMongoUserStore(client, testdbname),
+		UserStore: db.NewMongoUserStore(client),
 	}
 }
 

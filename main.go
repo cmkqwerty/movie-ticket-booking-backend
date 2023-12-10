@@ -11,11 +11,6 @@ import (
 	"log"
 )
 
-const (
-	dburi  = "mongodb://localhost:27017"
-	dbname = "movie-ticket-booking"
-)
-
 var config = fiber.Config{
 	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
 		return ctx.JSON(map[string]string{"error": err.Error()})
@@ -25,12 +20,17 @@ func main() {
 	listenAddr := flag.String("listenAddr", ":3000", "The listener address of the HTTP API server.")
 	flag.Parse()
 
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(dburi))
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(db.DBURI))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	userHandler := api.NewUserHandler(db.NewMongoUserStore(client, dbname))
+	var (
+		userHandler   = api.NewUserHandler(db.NewMongoUserStore(client))
+		cinemaStore   = db.NewMongoCinemaStore(client)
+		hallStore     = db.NewMongoHallStore(client, cinemaStore)
+		cinemaHandler = api.NewCinemaHandler(cinemaStore, db.NewMongoMovieStore(client), hallStore)
+	)
 
 	app := fiber.New(config)
 	apiv1 := app.Group("/api/v1")
@@ -40,6 +40,8 @@ func main() {
 	apiv1.Get("/user", userHandler.HandleGetUsers)
 	apiv1.Delete("/user/:id", userHandler.HandleDeleteUser)
 	apiv1.Put("/user/:id", userHandler.HandlePutUser)
+
+	apiv1.Get("/cinema", cinemaHandler.HandleGetCinemas)
 
 	app.Listen(*listenAddr)
 }
