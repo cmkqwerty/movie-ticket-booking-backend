@@ -15,8 +15,26 @@ var (
 	cinemaStore db.CinemaStore
 	movieStore  db.MovieStore
 	hallStore   db.HallStore
+	userStore   db.UserStore
 	ctx         = context.Background()
 )
+
+func seedUser(fName, lName, email string) {
+	user, err := types.NewUserFromParams(types.CreateUserParams{
+		FirstName: fName,
+		LastName:  lName,
+		Email:     email,
+		Password:  "securePassword12345",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = userStore.InsertUser(ctx, user)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func seedCinema(name, location string, rating int) {
 	cinema := types.Cinema{
@@ -62,7 +80,7 @@ func seedCinema(name, location string, rating int) {
 func main() {
 	seedCinema("CinemaxX", "Berlin", 5)
 	seedCinema("Mock", "Berlin", 2)
-
+	seedUser("Jimmy", "Scott", "jimmy@scott.com")
 }
 
 func init() {
@@ -78,4 +96,5 @@ func init() {
 	cinemaStore = db.NewMongoCinemaStore(client)
 	movieStore = db.NewMongoMovieStore(client)
 	hallStore = db.NewMongoHallStore(client, cinemaStore)
+	userStore = db.NewMongoUserStore(client)
 }

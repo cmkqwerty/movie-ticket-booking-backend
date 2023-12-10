@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/api"
+	"github.com/cmkqwerty/movie-ticket-booking-backend/api/middleware"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -38,21 +39,27 @@ func main() {
 		}
 		userHandler   = api.NewUserHandler(store)
 		cinemaHandler = api.NewCinemaHandler(store)
+		authHandler   = api.NewAuthHandler(userStore)
+
+		app   = fiber.New(config)
+		auth  = app.Group("/api")
+		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication)
 	)
 
-	app := fiber.New(config)
-	apiv1 := app.Group("/api/v1")
+	// Auth routes
+	auth.Post("/auth", authHandler.HandleAuthenticate)
 
+	// Versioned API routes
 	// User routes
-	apiv1.Post("/user", userHandler.HandlePostUser)
-	apiv1.Get("/user/:id", userHandler.HandleGetUser)
-	apiv1.Get("/user", userHandler.HandleGetUsers)
-	apiv1.Delete("/user/:id", userHandler.HandleDeleteUser)
-	apiv1.Put("/user/:id", userHandler.HandlePutUser)
+	apiV1.Post("/user", userHandler.HandlePostUser)
+	apiV1.Get("/user/:id", userHandler.HandleGetUser)
+	apiV1.Get("/user", userHandler.HandleGetUsers)
+	apiV1.Delete("/user/:id", userHandler.HandleDeleteUser)
+	apiV1.Put("/user/:id", userHandler.HandlePutUser)
 
 	// Cinema routes
-	apiv1.Get("/cinema", cinemaHandler.HandleGetCinemas)
-	apiv1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
+	apiV1.Get("/cinema", cinemaHandler.HandleGetCinemas)
+	apiV1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
 
 	app.Listen(*listenAddr)
 }
