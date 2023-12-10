@@ -3,34 +3,53 @@ package api
 import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CinemaHandler struct {
-	cinemaStore db.CinemaStore
-	movieStore  db.MovieStore
-	roomStore   db.HallStore
+	store *db.Store
 }
 
-func NewCinemaHandler(cinemaStore db.CinemaStore, movieStore db.MovieStore, roomStore db.HallStore) *CinemaHandler {
+func NewCinemaHandler(store *db.Store) *CinemaHandler {
 	return &CinemaHandler{
-		cinemaStore: cinemaStore,
-		movieStore:  movieStore,
-		roomStore:   roomStore,
+		store: store,
 	}
 }
 
-type CinemaQueryParams struct {
-	Halls  bool
-	Rating int
-}
-
-func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
-	var qParams CinemaQueryParams
-	if err := c.QueryParser(&qParams); err != nil {
+func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {
+	id := c.Params("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
 		return err
 	}
 
-	cinemas, err := h.cinemaStore.GetCinemas(c.Context(), nil)
+	filter := bson.M{"cinema": objID}
+	halls, err := h.store.Hall.GetHalls(c.Context(), filter)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(halls)
+}
+
+func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
+	id := c.Params("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	cinema, err := h.store.Cinema.GetCinemaByID(c.Context(), objID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(cinema)
+}
+
+func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
+	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), nil)
 	if err != nil {
 		return err
 	}

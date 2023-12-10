@@ -12,6 +12,7 @@ const hallColl = "halls"
 
 type HallStore interface {
 	InsertHall(context.Context, *types.Hall) (*types.Hall, error)
+	GetHalls(context.Context, bson.M) ([]*types.Hall, error)
 }
 
 type MongoHallStore struct {
@@ -45,4 +46,18 @@ func (s *MongoHallStore) InsertHall(ctx context.Context, hall *types.Hall) (*typ
 	}
 
 	return hall, nil
+}
+
+func (s *MongoHallStore) GetHalls(ctx context.Context, filter bson.M) ([]*types.Hall, error) {
+	cur, err := s.coll.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var halls []*types.Hall
+	if err := cur.All(ctx, &halls); err != nil {
+		return nil, err
+	}
+
+	return halls, nil
 }

@@ -14,6 +14,7 @@ type CinemaStore interface {
 	Insert(context.Context, *types.Cinema) (*types.Cinema, error)
 	Update(context.Context, bson.M, bson.M) error
 	GetCinemas(context.Context, bson.M) ([]*types.Cinema, error)
+	GetCinemaByID(context.Context, primitive.ObjectID) (*types.Cinema, error)
 }
 
 type MongoCinemaStore struct {
@@ -35,6 +36,17 @@ func (s *MongoCinemaStore) Insert(ctx context.Context, cinema *types.Cinema) (*t
 	}
 
 	cinema.ID = res.InsertedID.(primitive.ObjectID)
+
+	return cinema, nil
+}
+
+func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id primitive.ObjectID) (*types.Cinema, error) {
+	filter := bson.M{"_id": id}
+	var cinema *types.Cinema
+	err := s.coll.FindOne(ctx, filter).Decode(&cinema)
+	if err != nil {
+		return nil, err
+	}
 
 	return cinema, nil
 }

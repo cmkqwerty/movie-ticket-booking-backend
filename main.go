@@ -26,10 +26,18 @@ func main() {
 	}
 
 	var (
-		userHandler   = api.NewUserHandler(db.NewMongoUserStore(client))
-		cinemaStore   = db.NewMongoCinemaStore(client)
-		hallStore     = db.NewMongoHallStore(client, cinemaStore)
-		cinemaHandler = api.NewCinemaHandler(cinemaStore, db.NewMongoMovieStore(client), hallStore)
+		userStore   = db.NewMongoUserStore(client)
+		cinemaStore = db.NewMongoCinemaStore(client)
+		movieStore  = db.NewMongoMovieStore(client)
+		hallStore   = db.NewMongoHallStore(client, cinemaStore)
+		store       = &db.Store{
+			User:   userStore,
+			Cinema: cinemaStore,
+			Movie:  movieStore,
+			Hall:   hallStore,
+		}
+		userHandler   = api.NewUserHandler(userStore)
+		cinemaHandler = api.NewCinemaHandler(store)
 	)
 
 	app := fiber.New(config)
@@ -42,6 +50,7 @@ func main() {
 	apiv1.Put("/user/:id", userHandler.HandlePutUser)
 
 	apiv1.Get("/cinema", cinemaHandler.HandleGetCinemas)
+	apiv1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
 
 	app.Listen(*listenAddr)
 }

@@ -61,6 +61,8 @@ func seedCinema(name, location string, rating int) {
 
 func main() {
 	seedCinema("CinemaxX", "Berlin", 5)
+	seedCinema("Mock", "Berlin", 2)
+
 }
 
 func init() {
