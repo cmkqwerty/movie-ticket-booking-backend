@@ -50,6 +50,11 @@ func isEmailValid(email string) bool {
 	return emailRegex.MatchString(email)
 }
 
+func IsValidPassword(encryptedPassword, password string) bool {
+	return bcrypt.CompareHashAndPassword([]byte(encryptedPassword), []byte(password)) == nil
+
+}
+
 type UpdateUserParams struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`

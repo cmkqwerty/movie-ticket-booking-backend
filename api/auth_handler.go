@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
+	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/crypto/bcrypt"
+	"os"
+	"time"
 )
 
 type AuthHandler struct {
@@ -22,6 +25,11 @@ func NewAuthHandler(userStore db.UserStore) *AuthHandler {
 type AuthParams struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type AuthResponse struct {
+	User  *types.User `json:"user"`
+	Token string      `json:"token"`
 }
 
 func (h *AuthHandler) HandleAuthenticate(c *fiber.Ctx) error {
@@ -40,11 +48,33 @@ func (h *AuthHandler) HandleAuthenticate(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.EncryptedPassword), []byte(params.Password))
-	if err != nil {
-		fmt.Println("Error comparing password:", err)
+	if !types.IsValidPassword(user.EncryptedPassword, params.Password) {
 		return fmt.Errorf("invalid credentials")
 	}
 
-	return c.JSON(user)
+	resp := AuthResponse{
+		User:  user,
+		Token: createTokenFromUser(user),
+	}
+
+	return c.JSON(resp)
+}
+
+func createTokenFromUser(user *types.User) string {
+	now := time.Now()
+	expires := now.Add(time.Hour * 2).Unix()
+	claims := jwt.MapClaims{
+		"id":      user.ID.Hex(),
+		"email":   user.Email,
+		"expires": expires,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	secret := os.Getenv("JWT_SECRET")
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		fmt.Println("Error signing token:", err)
+	}
+
+	return tokenString
 }
