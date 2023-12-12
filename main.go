@@ -40,10 +40,11 @@ func main() {
 		userHandler   = api.NewUserHandler(store)
 		cinemaHandler = api.NewCinemaHandler(store)
 		authHandler   = api.NewAuthHandler(userStore)
+		hallHandler   = api.NewHallHandler(store)
 
 		app   = fiber.New(config)
 		auth  = app.Group("/api")
-		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication)
+		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication(userStore))
 	)
 
 	// Auth routes
@@ -59,7 +60,10 @@ func main() {
 
 	// Cinema routes
 	apiV1.Get("/cinema", cinemaHandler.HandleGetCinemas)
+	apiV1.Get("/cinema/:id", cinemaHandler.HandleGetCinema)
 	apiV1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
+
+	apiV1.Post("/hall/:id/book", hallHandler.HandleBookHall)
 
 	app.Listen(*listenAddr)
 }
