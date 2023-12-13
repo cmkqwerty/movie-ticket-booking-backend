@@ -6,8 +6,9 @@ const (
 )
 
 type Store struct {
-	User   UserStore
-	Cinema CinemaStore
-	Movie  MovieStore
-	Hall   HallStore
+	User    UserStore
+	Cinema  CinemaStore
+	Movie   MovieStore
+	Hall    HallStore
+	Booking BookingStore
 }
