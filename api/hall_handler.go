@@ -97,8 +97,9 @@ func (h *HallHandler) HandleBookHall(c *fiber.Ctx) error {
 
 func (h *HallHandler) isHallAvailableForBooking(ctx context.Context, hallID primitive.ObjectID, session types.Session) (bool, error) {
 	where := bson.M{
-		"hallID":  hallID,
-		"session": session,
+		"hallID":   hallID,
+		"session":  session,
+		"canceled": false,
 	}
 	bookings, err := h.store.Booking.GetBookings(ctx, where)
 	if err != nil {

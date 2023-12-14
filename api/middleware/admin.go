@@ -15,5 +15,5 @@ func AdminAuth(c *fiber.Ctx) error {
 		return fmt.Errorf("not authorized")
 	}
 
-	return nil
+	return c.Next()
 }
