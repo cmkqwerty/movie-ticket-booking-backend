@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/api"
-	"github.com/cmkqwerty/movie-ticket-booking-backend/api/middleware"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,9 +12,8 @@ import (
 )
 
 var config = fiber.Config{
-	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-		return ctx.JSON(map[string]string{"error": err.Error()})
-	}}
+	ErrorHandler: api.ErrorHandler,
+}
 
 func main() {
 	listenAddr := flag.String("listenAddr", ":3000", "The listener address of the HTTP API server.")
@@ -48,8 +46,8 @@ func main() {
 
 		app   = fiber.New(config)
 		auth  = app.Group("/api")
-		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication(userStore))
-		admin = apiV1.Group("/admin", middleware.AdminAuth)
+		apiV1 = app.Group("/api/v1", api.JWTAuthentication(userStore))
+		admin = apiV1.Group("/admin", api.AdminAuth)
 	)
 
 	// Auth routes

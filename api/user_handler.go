@@ -23,7 +23,7 @@ func NewUserHandler(store *db.Store) *UserHandler {
 func (h *UserHandler) HandlePostUser(c *fiber.Ctx) error {
 	var params types.CreateUserParams
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return ErrBadRequest()
 	}
 
 	if errs := params.Validate(); len(errs) > 0 {
@@ -49,7 +49,7 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 	user, err := h.store.User.GetUserByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.JSON(map[string]string{"msg": "not found"})
+			return ErrResourceNotFound("user")
 		}
 
 		return err
@@ -61,7 +61,7 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
 	users, err := h.store.User.GetUsers(c.Context())
 	if err != nil {
-		return err
+		return ErrResourceNotFound("user")
 	}
 
 	return c.JSON(users)
@@ -85,11 +85,11 @@ func (h *UserHandler) HandlePutUser(c *fiber.Ctx) error {
 
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return ErrInvalidID()
 	}
 
 	if err := c.BodyParser(&params); err != nil {
-		return err
+		return ErrBadRequest()
 	}
 
 	filter := bson.M{"_id": objID}

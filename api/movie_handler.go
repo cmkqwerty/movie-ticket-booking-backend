@@ -24,10 +24,7 @@ func (h *MovieHandler) HandleGetMovie(c *fiber.Ctx) error {
 	movie, err := h.store.Movie.GetMovieByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.JSON(genericResp{
-				Type: "error",
-				Msg:  "not found",
-			})
+			return ErrResourceNotFound("movie")
 		}
 		return err
 	}
@@ -38,7 +35,7 @@ func (h *MovieHandler) HandleGetMovie(c *fiber.Ctx) error {
 func (h *MovieHandler) HandleGetMovies(c *fiber.Ctx) error {
 	movies, err := h.store.Movie.GetMovies(c.Context(), bson.M{})
 	if err != nil {
-		return err
+		return ErrResourceNotFound("movie")
 	}
 
 	return c.JSON(movies)

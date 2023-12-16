@@ -39,16 +39,13 @@ func TestAuthenticateWithWrongPassword(t *testing.T) {
 		t.Fatalf("expected http status of 400 but got %d", resp.StatusCode)
 	}
 
-	var genResp genericResp
-	if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
+	var returnedResp map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&returnedResp); err != nil {
 		t.Fatal(err)
 	}
 
-	if genResp.Type != "error" {
-		t.Fatalf("expected response type of error but got %s", genResp.Type)
-	}
-	if genResp.Msg != "invalid credentials" {
-		t.Fatalf("expected response message of invalid credentials but got %s", genResp.Msg)
+	if returnedResp["message"] != "invalid credentials" {
+		t.Fatalf("expected response message of invalid credentials but got %s", returnedResp["message"])
 	}
 }
 

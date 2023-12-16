@@ -4,7 +4,6 @@ import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
 	"go.mongodb.org/mongo-driver/bson"
-	"net/http"
 )
 
 type BookingHandler struct {
@@ -22,19 +21,16 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("booking")
 	}
 
 	user, err := getAuthUser(c)
 	if err != nil {
-		return err
+		return ErrUnauthorized()
 	}
 
 	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "Not authorized.",
-		})
+		return ErrUnauthorized()
 	}
 
 	return c.JSON(booking)
@@ -43,7 +39,7 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 func (h *BookingHandler) HandleGetBookings(c *fiber.Ctx) error {
 	bookings, err := h.store.Booking.GetBookings(c.Context(), bson.M{})
 	if err != nil {
-		return err
+		return ErrResourceNotFound("booking")
 	}
 
 	return c.JSON(bookings)
@@ -54,27 +50,21 @@ func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("booking")
 	}
 
 	user, err := getAuthUser(c)
 	if err != nil {
-		return err
+		return ErrUnauthorized()
 	}
 
 	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "Not authorized.",
-		})
+		return ErrUnauthorized()
 	}
 
 	if err := h.store.Booking.UpdateBooking(c.Context(), id, bson.M{"canceled": true}); err != nil {
 		return err
 	}
 
-	return c.JSON(genericResp{
-		Type: "success",
-		Msg:  "Successfully deleted booking.",
-	})
+	return c.JSON(map[string]string{"message": "success"})
 }

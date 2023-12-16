@@ -21,12 +21,12 @@ func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return ErrInvalidID()
 	}
 
 	cinema, err := h.store.Cinema.GetCinemaByID(c.Context(), objID)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("cinema")
 	}
 
 	return c.JSON(cinema)
@@ -35,7 +35,7 @@ func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
 func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
 	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), nil)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("cinema")
 	}
 
 	return c.JSON(cinemas)
@@ -45,13 +45,13 @@ func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return ErrInvalidID()
 	}
 
 	filter := bson.M{"cinema": objID}
 	halls, err := h.store.Hall.GetHalls(c.Context(), filter)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("hall")
 	}
 
 	return c.JSON(halls)
