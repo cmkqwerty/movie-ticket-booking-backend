@@ -2,11 +2,9 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
-	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
+	"github.com/cmkqwerty/movie-ticket-booking-backend/db/fixtures"
 	"github.com/gofiber/fiber/v2"
 	"net/http"
 	"net/http/httptest"
@@ -14,37 +12,18 @@ import (
 	"testing"
 )
 
-func insertTestUser(t *testing.T, userStore db.UserStore) *types.User {
-	user, err := types.NewUserFromParams(types.CreateUserParams{
-		FirstName: "John",
-		LastName:  "Doe",
-		Email:     "john@doe.com",
-		Password:  "password12345",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = userStore.InsertUser(context.TODO(), user)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return user
-}
-
 func TestAuthenticateWithWrongPassword(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.tearDown(t)
-	insertTestUser(t, tdb.store.User)
+	fixtures.AddUser(tdb.Store, "james", "evergreen", false)
 
 	app := fiber.New()
-	authHandler := NewAuthHandler(tdb.store.User)
+	authHandler := NewAuthHandler(tdb.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
-		Email:    "john@doe.com",
-		Password: "passwordWrong",
+		Email:    "james@evergreen.com",
+		Password: "james123456",
 	}
 	b, _ := json.Marshal(params)
 
@@ -76,15 +55,15 @@ func TestAuthenticateWithWrongPassword(t *testing.T) {
 func TestAuthenticateSuccess(t *testing.T) {
 	tdb := setup(t)
 	defer tdb.tearDown(t)
-	insertedUser := insertTestUser(t, tdb.store.User)
+	insertedUser := fixtures.AddUser(tdb.Store, "james", "harvest", false)
 
 	app := fiber.New()
-	authHandler := NewAuthHandler(tdb.store.User)
+	authHandler := NewAuthHandler(tdb.User)
 	app.Post("/auth", authHandler.HandleAuthenticate)
 
 	params := AuthParams{
-		Email:    "john@doe.com",
-		Password: "password12345",
+		Email:    "james@harvest.com",
+		Password: "james_harvest",
 	}
 	b, _ := json.Marshal(params)
 

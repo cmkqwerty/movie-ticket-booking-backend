@@ -27,23 +27,29 @@ func main() {
 	}
 
 	var (
-		userStore   = db.NewMongoUserStore(client)
-		cinemaStore = db.NewMongoCinemaStore(client)
-		movieStore  = db.NewMongoMovieStore(client)
-		hallStore   = db.NewMongoHallStore(client, cinemaStore)
-		store       = &db.Store{
-			User:   userStore,
-			Cinema: cinemaStore,
-			Movie:  movieStore,
-			Hall:   hallStore,
+		userStore    = db.NewMongoUserStore(client)
+		cinemaStore  = db.NewMongoCinemaStore(client)
+		movieStore   = db.NewMongoMovieStore(client)
+		hallStore    = db.NewMongoHallStore(client, cinemaStore)
+		bookingStore = db.NewMongoBookingStore(client)
+		store        = &db.Store{
+			User:    userStore,
+			Cinema:  cinemaStore,
+			Movie:   movieStore,
+			Hall:    hallStore,
+			Booking: bookingStore,
 		}
-		userHandler   = api.NewUserHandler(store)
-		cinemaHandler = api.NewCinemaHandler(store)
-		authHandler   = api.NewAuthHandler(userStore)
+		userHandler    = api.NewUserHandler(store)
+		cinemaHandler  = api.NewCinemaHandler(store)
+		movieHandler   = api.NewMovieHandler(store)
+		hallHandler    = api.NewHallHandler(store)
+		authHandler    = api.NewAuthHandler(userStore)
+		bookingHandler = api.NewBookingHandler(store)
 
 		app   = fiber.New(config)
 		auth  = app.Group("/api")
-		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication)
+		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication(userStore))
+		admin = apiV1.Group("/admin", middleware.AdminAuth)
 	)
 
 	// Auth routes
@@ -59,7 +65,19 @@ func main() {
 
 	// Cinema routes
 	apiV1.Get("/cinema", cinemaHandler.HandleGetCinemas)
+	apiV1.Get("/cinema/:id", cinemaHandler.HandleGetCinema)
 	apiV1.Get("/cinema/:id/halls", cinemaHandler.HandleGetHalls)
+
+	apiV1.Get("/hall", hallHandler.HandleGetHalls)
+	apiV1.Post("/hall/:id/book", hallHandler.HandleBookHall)
+
+	apiV1.Get("/movie/:id", movieHandler.HandleGetMovie)
+	apiV1.Get("/movie", movieHandler.HandleGetMovies)
+
+	// Booking routes
+	admin.Get("/booking", bookingHandler.HandleGetBookings)
+	apiV1.Get("/booking/:id", bookingHandler.HandleGetBooking)
+	apiV1.Get("/booking/:id/cancel", bookingHandler.HandleCancelBooking)
 
 	app.Listen(*listenAddr)
 }

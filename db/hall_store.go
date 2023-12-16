@@ -13,6 +13,7 @@ const hallColl = "halls"
 type HallStore interface {
 	InsertHall(context.Context, *types.Hall) (*types.Hall, error)
 	GetHalls(context.Context, bson.M) ([]*types.Hall, error)
+	GetHallCapacity(context.Context, primitive.ObjectID) (int, error)
 }
 
 type MongoHallStore struct {
@@ -60,4 +61,13 @@ func (s *MongoHallStore) GetHalls(ctx context.Context, filter bson.M) ([]*types.
 	}
 
 	return halls, nil
+}
+
+func (s *MongoHallStore) GetHallCapacity(ctx context.Context, hallID primitive.ObjectID) (int, error) {
+	var hall types.Hall
+	if err := s.coll.FindOne(ctx, bson.M{"_id": hallID}).Decode(&hall); err != nil {
+		return 0, err
+	}
+
+	return hall.Capacity, nil
 }

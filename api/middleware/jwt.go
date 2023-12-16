@@ -2,29 +2,39 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"os"
 	"time"
 )
 
-func JWTAuthentication(c *fiber.Ctx) error {
-	token, ok := c.GetReqHeaders()["X-Api-Token"]
-	if !ok {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing X-Api-Token header."})
-	}
+func JWTAuthentication(userStore db.UserStore) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token, ok := c.GetReqHeaders()["X-Api-Token"]
+		if !ok {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Missing X-Api-Token header."})
+		}
 
-	claims, err := validateToken(token[0])
-	if err != nil {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
-	}
+		claims, err := validateToken(token[0])
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
+		}
 
-	expires := claims["expires"].(float64)
-	if time.Now().Unix() > int64(expires) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token has expired."})
-	}
+		expires := claims["expires"].(float64)
+		if time.Now().Unix() > int64(expires) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token has expired."})
+		}
 
-	return c.Next()
+		userID := claims["id"].(string)
+		user, err := userStore.GetUserByID(c.Context(), userID)
+		if err != nil {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "User not found."})
+		}
+
+		c.Context().SetUserValue("user", user)
+		return c.Next()
+	}
 }
 
 func validateToken(tokenString string) (jwt.MapClaims, error) {
