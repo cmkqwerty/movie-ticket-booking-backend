@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -19,39 +18,53 @@ func NewCinemaHandler(store *db.Store) *CinemaHandler {
 
 func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
 	id := c.Params("id")
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
-	}
 
-	cinema, err := h.store.Cinema.GetCinemaByID(c.Context(), objID)
+	cinema, err := h.store.Cinema.GetCinemaByID(c.Context(), id)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("cinema")
 	}
 
 	return c.JSON(cinema)
 }
 
+type CinemaQueryParams struct {
+	db.Pagination
+	Rating int
+}
+
 func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
-	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), nil)
-	if err != nil {
-		return err
+	var params CinemaQueryParams
+	if err := c.QueryParser(&params); err != nil {
+		return ErrBadRequest()
 	}
 
-	return c.JSON(cinemas)
+	filter := db.Map{
+		"rating": params.Rating,
+	}
+	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), filter, &params.Pagination)
+	if err != nil {
+		return ErrResourceNotFound("cinema")
+	}
+
+	resp := ResourceResponse{
+		Results: len(cinemas),
+		Data:    cinemas,
+		Page:    int(params.Page),
+	}
+	return c.JSON(resp)
 }
 
 func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {
 	id := c.Params("id")
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return ErrInvalidID()
 	}
 
-	filter := bson.M{"cinema": objID}
+	filter := db.Map{"cinema": objID}
 	halls, err := h.store.Hall.GetHalls(c.Context(), filter)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("hall")
 	}
 
 	return c.JSON(halls)

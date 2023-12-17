@@ -2,26 +2,23 @@ package main
 
 import (
 	"context"
-	"flag"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/api"
-	"github.com/cmkqwerty/movie-ticket-booking-backend/api/middleware"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"os"
 )
 
 var config = fiber.Config{
-	ErrorHandler: func(ctx *fiber.Ctx, err error) error {
-		return ctx.JSON(map[string]string{"error": err.Error()})
-	}}
+	ErrorHandler: api.ErrorHandler,
+}
 
 func main() {
-	listenAddr := flag.String("listenAddr", ":3000", "The listener address of the HTTP API server.")
-	flag.Parse()
-
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(db.URI))
+	mongoEndpoint := os.Getenv("MONGO_DB_URL")
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoEndpoint))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -48,8 +45,8 @@ func main() {
 
 		app   = fiber.New(config)
 		auth  = app.Group("/api")
-		apiV1 = app.Group("/api/v1", middleware.JWTAuthentication(userStore))
-		admin = apiV1.Group("/admin", middleware.AdminAuth)
+		apiV1 = app.Group("/api/v1", api.JWTAuthentication(userStore))
+		admin = apiV1.Group("/admin", api.AdminAuth)
 	)
 
 	// Auth routes
@@ -79,5 +76,12 @@ func main() {
 	apiV1.Get("/booking/:id", bookingHandler.HandleGetBooking)
 	apiV1.Get("/booking/:id/cancel", bookingHandler.HandleCancelBooking)
 
-	app.Listen(*listenAddr)
+	listenAddr := os.Getenv("HTTP_LISTEN_ADDRESS")
+	app.Listen(listenAddr)
+}
+
+func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal(err)
+	}
 }

@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"github.com/cmkqwerty/movie-ticket-booking-backend/api/middleware"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db/fixtures"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
@@ -24,8 +23,8 @@ func TestUserGetBooking(t *testing.T) {
 		movie          = fixtures.AddMovie(db.Store, "the lighthouse", types.Horror)
 		hall           = fixtures.AddHall(db.Store, 100, 10.0, cinema.ID, movie.ID)
 		booking        = fixtures.AddBooking(db.Store, user.ID, hall.ID, types.Morning, time.Now().AddDate(0, 0, 1))
-		app            = fiber.New()
-		route          = app.Group("/", middleware.JWTAuthentication(db.User))
+		app            = fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
+		route          = app.Group("/", JWTAuthentication(db.User))
 		bookingHandler = NewBookingHandler(db.Store)
 	)
 
@@ -74,8 +73,8 @@ func TestAdminGetBookings(t *testing.T) {
 		movie          = fixtures.AddMovie(db.Store, "the lighthouse", types.Horror)
 		hall           = fixtures.AddHall(db.Store, 100, 10.0, cinema.ID, movie.ID)
 		booking        = fixtures.AddBooking(db.Store, user.ID, hall.ID, types.Morning, time.Now().AddDate(0, 0, 1))
-		app            = fiber.New()
-		admin          = app.Group("/", middleware.JWTAuthentication(db.User), middleware.AdminAuth)
+		app            = fiber.New(fiber.Config{ErrorHandler: ErrorHandler})
+		admin          = app.Group("/", JWTAuthentication(db.User), AdminAuth)
 		bookingHandler = NewBookingHandler(db.Store)
 	)
 	booking.Date = time.Time{}
@@ -115,7 +114,7 @@ func TestAdminGetBookings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.StatusCode == http.StatusOK {
-		t.Fatal("expected status code is non 200")
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatal("expected status code is 401")
 	}
 }

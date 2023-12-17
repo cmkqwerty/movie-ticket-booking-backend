@@ -3,8 +3,6 @@ package api
 import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
-	"net/http"
 )
 
 type BookingHandler struct {
@@ -22,31 +20,47 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("booking")
 	}
 
 	user, err := getAuthUser(c)
 	if err != nil {
-		return err
+		return ErrUnauthorized()
 	}
 
 	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "Not authorized.",
-		})
+		return ErrUnauthorized()
 	}
 
 	return c.JSON(booking)
 }
 
+type BookingQueryParams struct {
+	db.Pagination
+	Canceled bool
+}
+
 func (h *BookingHandler) HandleGetBookings(c *fiber.Ctx) error {
-	bookings, err := h.store.Booking.GetBookings(c.Context(), bson.M{})
-	if err != nil {
-		return err
+	var params BookingQueryParams
+	if err := c.QueryParser(&params); err != nil {
+		return ErrBadRequest()
 	}
 
-	return c.JSON(bookings)
+	filter := db.Map{
+		"canceled": params.Canceled,
+	}
+	bookings, err := h.store.Booking.GetBookings(c.Context(), filter, &params.Pagination)
+	if err != nil {
+		return ErrResourceNotFound("booking")
+	}
+
+	resp := ResourceResponse{
+		Results: len(bookings),
+		Data:    bookings,
+		Page:    int(params.Page),
+	}
+	return c.JSON(resp)
+
 }
 
 func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
@@ -54,27 +68,21 @@ func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
 
 	booking, err := h.store.Booking.GetBookingByID(c.Context(), id)
 	if err != nil {
-		return err
+		return ErrResourceNotFound("booking")
 	}
 
 	user, err := getAuthUser(c)
 	if err != nil {
-		return err
+		return ErrUnauthorized()
 	}
 
 	if booking.UserID != user.ID {
-		return c.Status(http.StatusUnauthorized).JSON(genericResp{
-			Type: "error",
-			Msg:  "Not authorized.",
-		})
+		return ErrUnauthorized()
 	}
 
-	if err := h.store.Booking.UpdateBooking(c.Context(), id, bson.M{"canceled": true}); err != nil {
+	if err := h.store.Booking.UpdateBooking(c.Context(), id, db.Map{"canceled": true}); err != nil {
 		return err
 	}
 
-	return c.JSON(genericResp{
-		Type: "success",
-		Msg:  "Successfully deleted booking.",
-	})
+	return c.JSON(map[string]string{"message": "success"})
 }

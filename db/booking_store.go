@@ -6,6 +6,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 )
 
 const bookingColl = "bookings"
@@ -13,8 +15,9 @@ const bookingColl = "bookings"
 type BookingStore interface {
 	InsertBooking(context.Context, *types.Booking) (*types.Booking, error)
 	GetBookingByID(context.Context, string) (*types.Booking, error)
-	GetBookings(context.Context, bson.M) ([]*types.Booking, error)
-	UpdateBooking(context.Context, string, bson.M) error
+	GetBookings(context.Context, Map, *Pagination) ([]*types.Booking, error)
+	UpdateBooking(context.Context, string, Map) error
+	CountBookings(context.Context, Map) (int, error)
 }
 
 type MongoBookingStore struct {
@@ -25,9 +28,10 @@ type MongoBookingStore struct {
 }
 
 func NewMongoBookingStore(client *mongo.Client) *MongoBookingStore {
+	dbname := os.Getenv(MONGO_DB_ENV_NAME)
 	return &MongoBookingStore{
 		client: client,
-		coll:   client.Database(NAME).Collection(bookingColl),
+		coll:   client.Database(dbname).Collection(bookingColl),
 	}
 }
 
@@ -55,8 +59,12 @@ func (s *MongoBookingStore) GetBookingByID(ctx context.Context, id string) (*typ
 	return &booking, nil
 }
 
-func (s *MongoBookingStore) GetBookings(ctx context.Context, filter bson.M) ([]*types.Booking, error) {
-	cur, err := s.coll.Find(ctx, filter)
+func (s *MongoBookingStore) GetBookings(ctx context.Context, filter Map, pag *Pagination) ([]*types.Booking, error) {
+	opts := options.FindOptions{}
+	opts.SetSkip((pag.Page - 1) * pag.Limit)
+	opts.SetLimit(pag.Limit)
+
+	cur, err := s.coll.Find(ctx, filter, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +77,7 @@ func (s *MongoBookingStore) GetBookings(ctx context.Context, filter bson.M) ([]*
 	return bookings, nil
 }
 
-func (s *MongoBookingStore) UpdateBooking(ctx context.Context, id string, update bson.M) error {
+func (s *MongoBookingStore) UpdateBooking(ctx context.Context, id string, update Map) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return err
@@ -80,4 +88,13 @@ func (s *MongoBookingStore) UpdateBooking(ctx context.Context, id string, update
 	}
 
 	return nil
+}
+
+func (s *MongoBookingStore) CountBookings(ctx context.Context, filter Map) (int, error) {
+	bookingCount, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(bookingCount), nil
 }

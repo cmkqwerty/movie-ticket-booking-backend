@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -24,10 +23,7 @@ func (h *MovieHandler) HandleGetMovie(c *fiber.Ctx) error {
 	movie, err := h.store.Movie.GetMovieByID(c.Context(), id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return c.JSON(genericResp{
-				Type: "error",
-				Msg:  "not found",
-			})
+			return ErrResourceNotFound("movie")
 		}
 		return err
 	}
@@ -36,9 +32,9 @@ func (h *MovieHandler) HandleGetMovie(c *fiber.Ctx) error {
 }
 
 func (h *MovieHandler) HandleGetMovies(c *fiber.Ctx) error {
-	movies, err := h.store.Movie.GetMovies(c.Context(), bson.M{})
+	movies, err := h.store.Movie.GetMovies(c.Context(), db.Map{})
 	if err != nil {
-		return err
+		return ErrResourceNotFound("movie")
 	}
 
 	return c.JSON(movies)

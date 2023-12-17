@@ -8,8 +8,14 @@ import (
 func getAuthUser(c *fiber.Ctx) (*types.User, error) {
 	user, ok := c.Context().UserValue("user").(*types.User)
 	if !ok {
-		return nil, fiber.NewError(fiber.StatusUnauthorized, "Not authorized.")
+		return nil, ErrUnauthorized()
 	}
 
 	return user, nil
+}
+
+type ResourceResponse struct {
+	Results int `json:"results"`
+	Data    any `json:"data"`
+	Page    int `json:"page"`
 }
