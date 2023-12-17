@@ -1,10 +1,5 @@
 package db
 
-const (
-	NAME = "movie-ticket-booking"
-	URI  = "mongodb://localhost:27017"
-)
-
 type Map map[string]any
 
 type Pagination struct {
@@ -19,3 +14,5 @@ type Store struct {
 	Hall    HallStore
 	Booking BookingStore
 }
+
+const MONGO_DB_ENV_NAME = "MONGO_DB_NAME"

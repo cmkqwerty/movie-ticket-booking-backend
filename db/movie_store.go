@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"os"
 )
 
 const movieColl = "movies"
@@ -22,9 +23,10 @@ type MongoMovieStore struct {
 }
 
 func NewMongoMovieStore(c *mongo.Client) *MongoMovieStore {
+	dbname := os.Getenv(MONGO_DB_ENV_NAME)
 	return &MongoMovieStore{
 		client: c,
-		coll:   c.Database(NAME).Collection(movieColl),
+		coll:   c.Database(dbname).Collection(movieColl),
 	}
 }
 

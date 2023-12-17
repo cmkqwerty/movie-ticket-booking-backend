@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"os"
 )
 
 const hallColl = "halls"
@@ -24,9 +25,10 @@ type MongoHallStore struct {
 }
 
 func NewMongoHallStore(c *mongo.Client, cinemaStore CinemaStore) *MongoHallStore {
+	dbname := os.Getenv(MONGO_DB_ENV_NAME)
 	return &MongoHallStore{
 		client:      c,
-		coll:        c.Database(NAME).Collection(hallColl),
+		coll:        c.Database(dbname).Collection(hallColl),
 		CinemaStore: cinemaStore,
 	}
 }

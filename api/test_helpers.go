@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -15,13 +17,18 @@ type testDB struct {
 }
 
 func (tdb *testDB) tearDown(t *testing.T) {
-	if err := tdb.client.Database(db.NAME).Drop(context.TODO()); err != nil {
+	dbname := os.Getenv(db.MONGO_DB_ENV_NAME)
+	if err := tdb.client.Database(dbname).Drop(context.TODO()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func setup(t *testing.T) *testDB {
-	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(db.URI))
+	if err := godotenv.Load("../.env"); err != nil {
+		t.Error(err)
+	}
+	dburi := os.Getenv("MONGO_DB_URL_TEST")
+	client, err := mongo.Connect(context.TODO(), options.Client().ApplyURI(dburi))
 	if err != nil {
 		t.Fatal(err)
 	}
