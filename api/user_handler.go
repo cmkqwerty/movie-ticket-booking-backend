@@ -5,8 +5,6 @@ import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -83,16 +81,11 @@ func (h *UserHandler) HandlePutUser(c *fiber.Ctx) error {
 		id     = c.Params("id")
 	)
 
-	objID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return ErrInvalidID()
-	}
-
 	if err := c.BodyParser(&params); err != nil {
 		return ErrBadRequest()
 	}
 
-	filter := bson.M{"_id": objID}
+	filter := db.Map{"_id": id}
 	if err := h.store.User.UpdateUser(c.Context(), filter, params); err != nil {
 		return err
 	}

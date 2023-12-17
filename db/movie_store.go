@@ -13,7 +13,7 @@ const movieColl = "movies"
 type MovieStore interface {
 	InsertMovie(context.Context, *types.Movie) (*types.Movie, error)
 	GetMovieByID(context.Context, string) (*types.Movie, error)
-	GetMovies(context.Context, bson.M) ([]*types.Movie, error)
+	GetMovies(context.Context, Map) ([]*types.Movie, error)
 }
 
 type MongoMovieStore struct {
@@ -53,7 +53,7 @@ func (s *MongoMovieStore) GetMovieByID(ctx context.Context, id string) (*types.M
 	return &movie, nil
 }
 
-func (s *MongoMovieStore) GetMovies(ctx context.Context, filter bson.M) ([]*types.Movie, error) {
+func (s *MongoMovieStore) GetMovies(ctx context.Context, filter Map) ([]*types.Movie, error) {
 	cur, err := s.coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err

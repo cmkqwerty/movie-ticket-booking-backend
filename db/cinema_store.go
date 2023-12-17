@@ -12,9 +12,9 @@ const cinemaColl = "cinemas"
 
 type CinemaStore interface {
 	InsertCinema(context.Context, *types.Cinema) (*types.Cinema, error)
-	GetCinemaByID(context.Context, primitive.ObjectID) (*types.Cinema, error)
-	GetCinemas(context.Context, bson.M) ([]*types.Cinema, error)
-	UpdateCinema(context.Context, bson.M, bson.M) error
+	GetCinemaByID(context.Context, string) (*types.Cinema, error)
+	GetCinemas(context.Context, Map) ([]*types.Cinema, error)
+	UpdateCinema(context.Context, Map, Map) error
 }
 
 type MongoCinemaStore struct {
@@ -40,10 +40,14 @@ func (s *MongoCinemaStore) InsertCinema(ctx context.Context, cinema *types.Cinem
 	return cinema, nil
 }
 
-func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id primitive.ObjectID) (*types.Cinema, error) {
-	filter := bson.M{"_id": id}
+func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id string) (*types.Cinema, error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
 	var cinema *types.Cinema
-	err := s.coll.FindOne(ctx, filter).Decode(&cinema)
+	err = s.coll.FindOne(ctx, bson.M{"_id": objID}).Decode(&cinema)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +55,7 @@ func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id primitive.Objec
 	return cinema, nil
 }
 
-func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter bson.M) ([]*types.Cinema, error) {
+func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter Map) ([]*types.Cinema, error) {
 	cur, err := s.coll.Find(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -65,7 +69,7 @@ func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter bson.M) ([]*ty
 	return cinemas, nil
 }
 
-func (s *MongoCinemaStore) UpdateCinema(ctx context.Context, filter bson.M, update bson.M) error {
+func (s *MongoCinemaStore) UpdateCinema(ctx context.Context, filter Map, update Map) error {
 	_, err := s.coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err

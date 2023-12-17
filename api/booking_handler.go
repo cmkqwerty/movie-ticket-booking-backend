@@ -3,7 +3,6 @@ package api
 import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type BookingHandler struct {
@@ -37,7 +36,7 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 }
 
 func (h *BookingHandler) HandleGetBookings(c *fiber.Ctx) error {
-	bookings, err := h.store.Booking.GetBookings(c.Context(), bson.M{})
+	bookings, err := h.store.Booking.GetBookings(c.Context(), db.Map{})
 	if err != nil {
 		return ErrResourceNotFound("booking")
 	}
@@ -62,7 +61,7 @@ func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {
 		return ErrUnauthorized()
 	}
 
-	if err := h.store.Booking.UpdateBooking(c.Context(), id, bson.M{"canceled": true}); err != nil {
+	if err := h.store.Booking.UpdateBooking(c.Context(), id, db.Map{"canceled": true}); err != nil {
 		return err
 	}
 

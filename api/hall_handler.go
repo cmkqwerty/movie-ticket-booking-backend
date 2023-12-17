@@ -6,8 +6,8 @@ import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"net/http"
 	"time"
 )
 
@@ -19,11 +19,11 @@ type BookHallParams struct {
 func (p BookHallParams) validate() error {
 	now := time.Now()
 	if now.After(p.Date) {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid date.")
+		return NewError(http.StatusBadRequest, "Invalid date.")
 	}
 
 	if p.Session < types.Morning || p.Session > types.Night {
-		return fiber.NewError(fiber.StatusBadRequest, "Invalid session.")
+		return NewError(http.StatusBadRequest, "Invalid session.")
 	}
 
 	return nil
@@ -40,7 +40,7 @@ func NewHallHandler(store *db.Store) *HallHandler {
 }
 
 func (h *HallHandler) HandleGetHalls(c *fiber.Ctx) error {
-	halls, err := h.store.Hall.GetHalls(c.Context(), bson.M{})
+	halls, err := h.store.Hall.GetHalls(c.Context(), db.Map{})
 	if err != nil {
 		return ErrResourceNotFound("hall")
 	}
@@ -93,7 +93,7 @@ func (h *HallHandler) HandleBookHall(c *fiber.Ctx) error {
 }
 
 func (h *HallHandler) isHallAvailableForBooking(ctx context.Context, hallID primitive.ObjectID, session types.Session) (bool, error) {
-	where := bson.M{
+	where := db.Map{
 		"hallID":   hallID,
 		"session":  session,
 		"canceled": false,
