@@ -27,13 +27,31 @@ func (h *CinemaHandler) HandleGetCinema(c *fiber.Ctx) error {
 	return c.JSON(cinema)
 }
 
+type CinemaQueryParams struct {
+	db.Pagination
+	Rating int
+}
+
 func (h *CinemaHandler) HandleGetCinemas(c *fiber.Ctx) error {
-	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), nil)
+	var params CinemaQueryParams
+	if err := c.QueryParser(&params); err != nil {
+		return ErrBadRequest()
+	}
+
+	filter := db.Map{
+		"rating": params.Rating,
+	}
+	cinemas, err := h.store.Cinema.GetCinemas(c.Context(), filter, &params.Pagination)
 	if err != nil {
 		return ErrResourceNotFound("cinema")
 	}
 
-	return c.JSON(cinemas)
+	resp := ResourceResponse{
+		Results: len(cinemas),
+		Data:    cinemas,
+		Page:    int(params.Page),
+	}
+	return c.JSON(resp)
 }
 
 func (h *CinemaHandler) HandleGetHalls(c *fiber.Ctx) error {

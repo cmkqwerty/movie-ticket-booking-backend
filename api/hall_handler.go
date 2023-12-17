@@ -98,7 +98,7 @@ func (h *HallHandler) isHallAvailableForBooking(ctx context.Context, hallID prim
 		"session":  session,
 		"canceled": false,
 	}
-	bookings, err := h.store.Booking.GetBookings(ctx, where)
+	bookingsCount, err := h.store.Booking.CountBookings(ctx, where)
 	if err != nil {
 		return false, ErrResourceNotFound("booking")
 	}
@@ -107,7 +107,7 @@ func (h *HallHandler) isHallAvailableForBooking(ctx context.Context, hallID prim
 		return false, ErrResourceNotFound("hall")
 	}
 
-	if len(bookings) >= capacity {
+	if bookingsCount >= capacity {
 		return false, nil
 	}
 

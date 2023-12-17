@@ -35,13 +35,32 @@ func (h *BookingHandler) HandleGetBooking(c *fiber.Ctx) error {
 	return c.JSON(booking)
 }
 
+type BookingQueryParams struct {
+	db.Pagination
+	Canceled bool
+}
+
 func (h *BookingHandler) HandleGetBookings(c *fiber.Ctx) error {
-	bookings, err := h.store.Booking.GetBookings(c.Context(), db.Map{})
+	var params BookingQueryParams
+	if err := c.QueryParser(&params); err != nil {
+		return ErrBadRequest()
+	}
+
+	filter := db.Map{
+		"canceled": params.Canceled,
+	}
+	bookings, err := h.store.Booking.GetBookings(c.Context(), filter, &params.Pagination)
 	if err != nil {
 		return ErrResourceNotFound("booking")
 	}
 
-	return c.JSON(bookings)
+	resp := ResourceResponse{
+		Results: len(bookings),
+		Data:    bookings,
+		Page:    int(params.Page),
+	}
+	return c.JSON(resp)
+
 }
 
 func (h *BookingHandler) HandleCancelBooking(c *fiber.Ctx) error {

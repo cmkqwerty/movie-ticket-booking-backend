@@ -6,6 +6,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 const bookingColl = "bookings"
@@ -13,8 +14,9 @@ const bookingColl = "bookings"
 type BookingStore interface {
 	InsertBooking(context.Context, *types.Booking) (*types.Booking, error)
 	GetBookingByID(context.Context, string) (*types.Booking, error)
-	GetBookings(context.Context, Map) ([]*types.Booking, error)
+	GetBookings(context.Context, Map, *Pagination) ([]*types.Booking, error)
 	UpdateBooking(context.Context, string, Map) error
+	CountBookings(context.Context, Map) (int, error)
 }
 
 type MongoBookingStore struct {
@@ -55,8 +57,12 @@ func (s *MongoBookingStore) GetBookingByID(ctx context.Context, id string) (*typ
 	return &booking, nil
 }
 
-func (s *MongoBookingStore) GetBookings(ctx context.Context, filter Map) ([]*types.Booking, error) {
-	cur, err := s.coll.Find(ctx, filter)
+func (s *MongoBookingStore) GetBookings(ctx context.Context, filter Map, pag *Pagination) ([]*types.Booking, error) {
+	opts := options.FindOptions{}
+	opts.SetSkip((pag.Page - 1) * pag.Limit)
+	opts.SetLimit(pag.Limit)
+
+	cur, err := s.coll.Find(ctx, filter, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -80,4 +86,13 @@ func (s *MongoBookingStore) UpdateBooking(ctx context.Context, id string, update
 	}
 
 	return nil
+}
+
+func (s *MongoBookingStore) CountBookings(ctx context.Context, filter Map) (int, error) {
+	bookingCount, err := s.coll.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(bookingCount), nil
 }

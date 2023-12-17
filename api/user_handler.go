@@ -57,12 +57,22 @@ func (h *UserHandler) HandleGetUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) HandleGetUsers(c *fiber.Ctx) error {
-	users, err := h.store.User.GetUsers(c.Context())
+	var pag db.Pagination
+	if err := c.QueryParser(&pag); err != nil {
+		return ErrBadRequest()
+	}
+
+	users, err := h.store.User.GetUsers(c.Context(), &pag)
 	if err != nil {
 		return ErrResourceNotFound("user")
 	}
 
-	return c.JSON(users)
+	resp := ResourceResponse{
+		Results: len(users),
+		Data:    users,
+		Page:    int(pag.Page),
+	}
+	return c.JSON(resp)
 }
 
 func (h *UserHandler) HandleDeleteUser(c *fiber.Ctx) error {

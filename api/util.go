@@ -13,3 +13,9 @@ func getAuthUser(c *fiber.Ctx) (*types.User, error) {
 
 	return user, nil
 }
+
+type ResourceResponse struct {
+	Results int `json:"results"`
+	Data    any `json:"data"`
+	Page    int `json:"page"`
+}
