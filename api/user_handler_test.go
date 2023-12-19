@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http/httptest"
 	"testing"
 )
@@ -138,9 +139,29 @@ func TestGetUsers(t *testing.T) {
 	}
 
 	var returnedUsers []*types.User
-	err = json.NewDecoder(resp.Body).Decode(&returnedUsers)
-	if err != nil {
+	var response *ResourceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		t.Fatal(err)
+	}
+
+	dataSlice := response.Data.([]interface{})
+
+	for _, item := range dataSlice {
+		dataMap, ok := item.(map[string]interface{})
+		if !ok {
+			t.Fatal("unexpected type in dataMap")
+		}
+
+		userID, _ := primitive.ObjectIDFromHex(dataMap["id"].(string))
+		user := &types.User{
+			ID:        userID,
+			FirstName: dataMap["firstName"].(string),
+			LastName:  dataMap["lastName"].(string),
+			Email:     dataMap["email"].(string),
+			IsAdmin:   dataMap["isAdmin"].(bool),
+		}
+
+		returnedUsers = append(returnedUsers, user)
 	}
 
 	user1.EncryptedPassword = ""
