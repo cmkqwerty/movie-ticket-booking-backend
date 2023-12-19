@@ -1,6 +1,3 @@
-# This workflow will build a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
 name: Go
 
 on:
@@ -10,31 +7,33 @@ on:
     branches: [ "master" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: --name mongodb
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.20'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
 
-    - name: Setup
-      run: docker run --name mongodb -d mongo:latest -p 27017:27017
+      - name: .env
+        run: |
+          touch .env
+          echo HTTP_LISTEN_ADDRESS=":3000" >> .env
+          echo MONGO_DB_NAME="movie-ticket-booking" >> .env
+          echo MONGO_DB_URL="mongodb://localhost:27017" >> .env
+          echo MONGO_DB_URL_TEST="mongodb://localhost:27017" >> .env
+          echo JWT_SECRET=${{ secrets.JWT_SECRET }} >> .env
 
-    - name: .env
-      run: |
-        touch .env
-        echo HTTP_LISTEN_ADDRESS=":3000" >> .env
-        echo MONGO_DB_NAME="movie-ticket-booking" >> .env
-        echo MONGO_DB_URL="mongodb://localhost:27017" >> .env
-        echo MONGO_DB_URL_TEST="mongodb://localhost:27017" >> .env
-        echo JWT_SECRET=${{ secrets.JWT_SECRET }} >> .env
+      - name: Build
+        run: go build -v ./...
 
-    - name: Build
-      run: go build -v ./...
-
-    - name: Test
-      run: go test -v ./...
+      - name: Test
+        run: go test -v ./...
