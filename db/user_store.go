@@ -7,6 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 )
 
 const userColl = "users"
@@ -19,8 +21,8 @@ type UserStore interface {
 	InsertUser(context.Context, *types.User) (*types.User, error)
 	GetUserByID(context.Context, string) (*types.User, error)
 	GetUserByEmail(context.Context, string) (*types.User, error)
-	GetUsers(context.Context) ([]*types.User, error)
-	UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error
+	GetUsers(context.Context, *Pagination) ([]*types.User, error)
+	UpdateUser(ctx context.Context, filter Map, params types.UpdateUserParams) error
 	DeleteUser(context.Context, string) error
 
 	Dropper
@@ -32,9 +34,10 @@ type MongoUserStore struct {
 }
 
 func NewMongoUserStore(c *mongo.Client) *MongoUserStore {
+	dbname := os.Getenv(MONGO_DB_ENV_NAME)
 	return &MongoUserStore{
 		client: c,
-		coll:   c.Database(NAME).Collection(userColl),
+		coll:   c.Database(dbname).Collection(userColl),
 	}
 }
 
@@ -77,8 +80,12 @@ func (s *MongoUserStore) GetUserByEmail(ctx context.Context, email string) (*typ
 	return &user, nil
 }
 
-func (s *MongoUserStore) GetUsers(ctx context.Context) ([]*types.User, error) {
-	cur, err := s.coll.Find(ctx, bson.M{})
+func (s *MongoUserStore) GetUsers(ctx context.Context, pag *Pagination) ([]*types.User, error) {
+	opts := options.FindOptions{}
+	opts.SetSkip((pag.Page - 1) * pag.Limit)
+	opts.SetLimit(pag.Limit)
+
+	cur, err := s.coll.Find(ctx, bson.M{}, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -105,13 +112,19 @@ func (s *MongoUserStore) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *MongoUserStore) UpdateUser(ctx context.Context, filter bson.M, params types.UpdateUserParams) error {
+func (s *MongoUserStore) UpdateUser(ctx context.Context, filter Map, params types.UpdateUserParams) error {
+	objID, err := primitive.ObjectIDFromHex(filter["_id"].(string))
+	if err != nil {
+		return err
+	}
+
+	filter["_id"] = objID
 	update := bson.D{
 		{
 			"$set", params.ToBSON(),
 		},
 	}
-	_, err := s.coll.UpdateOne(ctx, filter, update)
+	_, err = s.coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}

@@ -6,15 +6,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"os"
 )
 
 const cinemaColl = "cinemas"
 
 type CinemaStore interface {
 	InsertCinema(context.Context, *types.Cinema) (*types.Cinema, error)
-	GetCinemaByID(context.Context, primitive.ObjectID) (*types.Cinema, error)
-	GetCinemas(context.Context, bson.M) ([]*types.Cinema, error)
-	UpdateCinema(context.Context, bson.M, bson.M) error
+	GetCinemaByID(context.Context, string) (*types.Cinema, error)
+	GetCinemas(context.Context, Map, *Pagination) ([]*types.Cinema, error)
+	UpdateCinema(context.Context, Map, Map) error
 }
 
 type MongoCinemaStore struct {
@@ -23,9 +25,10 @@ type MongoCinemaStore struct {
 }
 
 func NewMongoCinemaStore(c *mongo.Client) *MongoCinemaStore {
+	dbname := os.Getenv(MONGO_DB_ENV_NAME)
 	return &MongoCinemaStore{
 		client: c,
-		coll:   c.Database(NAME).Collection(cinemaColl),
+		coll:   c.Database(dbname).Collection(cinemaColl),
 	}
 }
 
@@ -40,10 +43,14 @@ func (s *MongoCinemaStore) InsertCinema(ctx context.Context, cinema *types.Cinem
 	return cinema, nil
 }
 
-func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id primitive.ObjectID) (*types.Cinema, error) {
-	filter := bson.M{"_id": id}
+func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id string) (*types.Cinema, error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
 	var cinema *types.Cinema
-	err := s.coll.FindOne(ctx, filter).Decode(&cinema)
+	err = s.coll.FindOne(ctx, bson.M{"_id": objID}).Decode(&cinema)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +58,12 @@ func (s *MongoCinemaStore) GetCinemaByID(ctx context.Context, id primitive.Objec
 	return cinema, nil
 }
 
-func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter bson.M) ([]*types.Cinema, error) {
-	cur, err := s.coll.Find(ctx, filter)
+func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter Map, pag *Pagination) ([]*types.Cinema, error) {
+	opts := options.FindOptions{}
+	opts.SetSkip((pag.Page - 1) * pag.Limit)
+	opts.SetLimit(pag.Limit)
+
+	cur, err := s.coll.Find(ctx, filter, &opts)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +76,7 @@ func (s *MongoCinemaStore) GetCinemas(ctx context.Context, filter bson.M) ([]*ty
 	return cinemas, nil
 }
 
-func (s *MongoCinemaStore) UpdateCinema(ctx context.Context, filter bson.M, update bson.M) error {
+func (s *MongoCinemaStore) UpdateCinema(ctx context.Context, filter Map, update Map) error {
 	_, err := s.coll.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
