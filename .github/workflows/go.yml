@@ -24,11 +24,17 @@ jobs:
     - name: Setup
       run: docker run --name mongodb -d mongo:latest -p 27017:27017
 
+    - name: .env
+      run: |
+        touch .env
+        echo HTTP_LISTEN_ADDRESS=":3000" >> .env
+        echo MONGO_DB_NAME="movie-ticket-booking" >> .env
+        echo MONGO_DB_URL="mongodb://localhost:27017" >> .env
+        echo MONGO_DB_URL_TEST="mongodb://localhost:27017" >> .env
+        echo JWT_SECRET=${{ secrets.JWT_SECRET }} >> .env
+
     - name: Build
       run: go build -v ./...
-
-    - name: Secrets
-      run: echo "${{ secrets.ENV_FILE }}" > .env
 
     - name: Test
       run: go test -v ./...
