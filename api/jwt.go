@@ -20,7 +20,7 @@ func JWTAuthentication(userStore db.UserStore) fiber.Handler {
 
 		claims, err := validateToken(token[0])
 		if err != nil {
-			return ErrUnauthorized()
+			return err
 		}
 
 		expires := claims["expires"].(float64)

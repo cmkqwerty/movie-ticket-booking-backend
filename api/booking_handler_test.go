@@ -5,6 +5,7 @@ import (
 	"github.com/cmkqwerty/movie-ticket-booking-backend/db/fixtures"
 	"github.com/cmkqwerty/movie-ticket-booking-backend/types"
 	"github.com/gofiber/fiber/v2"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -93,9 +94,33 @@ func TestAdminGetBookings(t *testing.T) {
 	}
 
 	var bookings []*types.Booking
-	if err := json.NewDecoder(resp.Body).Decode(&bookings); err != nil {
+	var response *ResourceResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		t.Fatal(err)
 	}
+
+	dataSlice := response.Data.([]interface{})
+
+	for _, item := range dataSlice {
+		dataMap, ok := item.(map[string]interface{})
+		if !ok {
+			t.Fatal("unexpected type in dataMap")
+		}
+
+		hallID, _ := primitive.ObjectIDFromHex(dataMap["hallID"].(string))
+		bookingID, _ := primitive.ObjectIDFromHex(dataMap["id"].(string))
+		userID, _ := primitive.ObjectIDFromHex(dataMap["userID"].(string))
+		bkng := &types.Booking{
+			Canceled: dataMap["canceled"].(bool),
+			HallID:   hallID,
+			ID:       bookingID,
+			UserID:   userID,
+		}
+		bkng.Date = time.Time{}
+
+		bookings = append(bookings, bkng)
+	}
+
 	for _, b := range bookings {
 		b.Date = time.Time{}
 	}
